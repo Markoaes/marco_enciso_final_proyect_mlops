@@ -1,14 +1,18 @@
 import os
-import numpy as np
-from scipy.stats import ks_2samp
-import pandas as pd
 import joblib
+import pandas as pd
+import numpy as np
+
+from scipy.stats import ks_2samp
+
 from sklearn.pipeline import Pipeline
 from sklearn.compose import ColumnTransformer
 from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import roc_auc_score, classification_report
+
+from xgboost import XGBClassifier
 
 DATA_PATH = "data/training"
 MODEL_PATH = "models"
@@ -31,23 +35,22 @@ def main():
     y_test = pd.read_csv(f"{DATA_PATH}/y_test.csv").values.ravel()
 
     # -----------------------------
-    # 1️⃣ Eliminar Target 
+    # Remove ID
     # -----------------------------
     if "ID" in X_train.columns:
         X_train = X_train.drop(columns=["ID"])
         X_test = X_test.drop(columns=["ID"])
 
     # -----------------------------
-    # 2️⃣ Definir variables categóricas
-    #     # -----------------------------
+    # Feature definition
+    # -----------------------------
     categorical_features = ["SEX", "EDUCATION", "MARRIAGE"]
-
     numerical_features = [
         col for col in X_train.columns if col not in categorical_features
     ]
 
     # -----------------------------
-    # 3️⃣ Preprocessing pipeline
+    # Preprocessing pipeline
     # -----------------------------
     preprocessor = ColumnTransformer(
         transformers=[
@@ -56,10 +59,11 @@ def main():
         ]
     )
 
-    # =============================
-    # MODELO 1: Logistic Regression
-    # =============================
+    models = {}
 
+    # =============================
+    # Logistic Regression
+    # =============================
     log_pipeline = Pipeline(
         steps=[
             ("preprocessor", preprocessor),
@@ -67,60 +71,83 @@ def main():
         ]
     )
 
-    print("Training Logistic Regression...")
     log_pipeline.fit(X_train, y_train)
-
     log_probs = log_pipeline.predict_proba(X_test)[:, 1]
     log_auc = roc_auc_score(y_test, log_probs)
+    log_ks = compute_ks(y_test, log_probs)
 
-    print(f"\nLogistic Regression AUC: {log_auc:.4f}")
+    print("\nLogistic Regression Results")
+    print("AUC:", round(log_auc, 4))
+    print("KS:", round(log_ks, 4))
+
+    models["Logistic Regression"] = (log_pipeline, log_auc)
 
     # =============================
-    # MODELO 2: Random Forest
+    # Random Forest
     # =============================
-
     rf_pipeline = Pipeline(
         steps=[
             ("preprocessor", preprocessor),
-            ("classifier", RandomForestClassifier(n_estimators=200, random_state=42))
+            ("classifier", RandomForestClassifier(
+                n_estimators=200,
+                random_state=42
+            ))
         ]
     )
 
-    print("Training Random Forest...")
     rf_pipeline.fit(X_train, y_train)
-
     rf_probs = rf_pipeline.predict_proba(X_test)[:, 1]
     rf_auc = roc_auc_score(y_test, rf_probs)
-
-    print(f"Random Forest AUC: {rf_auc:.4f}")
-
-    # -----------------------------
-    # 📊 Métricas 
-    # -----------------------------
-    print("\nClassification Report - Random Forest:")
-    rf_predictions = rf_pipeline.predict(X_test)
-    print(classification_report(y_test, rf_predictions))
-
     rf_ks = compute_ks(y_test, rf_probs)
-    print(f"Random Forest KS: {rf_ks:.4f}")
+
+    print("\nRandom Forest Results")
+    print("AUC:", round(rf_auc, 4))
+    print("KS:", round(rf_ks, 4))
+
+    models["Random Forest"] = (rf_pipeline, rf_auc)
+
+    # =============================
+    # XGBoost
+    # =============================
+    xgb_pipeline = Pipeline(
+        steps=[
+            ("preprocessor", preprocessor),
+            ("classifier", XGBClassifier(
+                n_estimators=300,
+                learning_rate=0.05,
+                max_depth=4,
+                random_state=42,
+                eval_metric="logloss"
+            ))
+        ]
+    )
+
+    xgb_pipeline.fit(X_train, y_train)
+    xgb_probs = xgb_pipeline.predict_proba(X_test)[:, 1]
+    xgb_auc = roc_auc_score(y_test, xgb_probs)
+    xgb_ks = compute_ks(y_test, xgb_probs)
+
+    print("\nXGBoost Results")
+    print("AUC:", round(xgb_auc, 4))
+    print("KS:", round(xgb_ks, 4))
+
+    models["XGBoost"] = (xgb_pipeline, xgb_auc)
+
+    # =============================
+    # Champion Selection
+    # =============================
+    champion_name = max(models, key=lambda k: models[k][1])
+    champion_model = models[champion_name][0]
+
+    print("\nChampion Model:", champion_name)
 
     # -----------------------------
-    # 4️⃣ Selección del mejor modelo
-    # -----------------------------
-    if rf_auc > log_auc:
-        champion_model = rf_pipeline
-        print("\nChampion Model: Random Forest")
-    else:
-        champion_model = log_pipeline
-        print("\nChampion Model: Logistic Regression")
-
-    # -----------------------------
-    # 5️⃣ Guardar modelo
+    # Save model
     # -----------------------------
     os.makedirs(MODEL_PATH, exist_ok=True)
     joblib.dump(champion_model, f"{MODEL_PATH}/credit_model.pkl")
 
-    print("\nModel saved successfully!")
+    print("Model saved successfully!")
 
 
 if __name__ == "__main__":
