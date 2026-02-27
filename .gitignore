@@ -205,3 +205,7 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# Models (do not upload binaries >100MB)
+models/*.pkl
+models/*.joblib
