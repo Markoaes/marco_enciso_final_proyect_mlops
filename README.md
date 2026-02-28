@@ -6,7 +6,7 @@ Student info:
 - e-mail: marcoaes@gmail.com
 - Grupo: 2
 
-## Project Name: [Credit Default Prediction]
+## Project Name: [Credit Default Prediction] -  Pipeline End-to-End con MLOps
 
 ## 1. Descripción del Problema
 
@@ -14,25 +14,51 @@ Este proyecto tiene como objetivo predecir el riesgo de incumplimiento (default)
 
 Se emplea el dataset público **UCI Credit Card Default Dataset**, que contiene información demográfica, historial de pagos y comportamiento financiero de 30,000 clientes.
 
-El objetivo es construir un modelo predictivo, evaluarlo y desplegarlo siguiendo buenas prácticas del ciclo de vida de Machine Learning (ML Lifecycle) bajo un enfoque MLOps.
+El propósito del proyecto es:
 
----
+- Comparar múltiples modelos de clasificación
+- Seleccionar un Modelo Campeón
+- Serializar el modelo final
+- Implementar seguimiento de experimentos con MLflow
+- Desplegar el modelo mediante una API REST
+- Validar la inferencia en tiempo real
+
+El desarrollo sigue el ciclo completo de vida de Machine Learning bajo principios MLOps.
+
 
 ## 2. Estructura del Proyecto
 
 data/
 ├── raw/
 ├── training/
+
 models/
+├── credit_model.pkl
+
 notebooks/
+├── 01_model_experiments.ipynb
+
 reports/
+├── api_prediction_high_risk.png
+├── api_prediction_low_risk.png
+├── mlflow.png
+├── model_results.md
+
+resources/images/
+├── machine_learning_lifecycle.png
+
 src/
 ├── data_preparation.py
 ├── train.py
 ├── serving.py
+
 tests/
+├── .gitkeep
+
 requirements.txt
 README.md
+final_project_description.md
+.gitignore
 
 ## 3. ML Lifecycle Aplicado
 
@@ -42,7 +68,7 @@ El proyecto sigue las siguientes etapas:
 2. Data Preparation
 3. Model Training
 4. Model Evaluation
-5. Model Selection (Champion Model)
+5. Model Selection (Best Model)
 6. Model Serialization
 7. Model Deployment (API REST)
 8. Serving & Validation
