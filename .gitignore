@@ -209,3 +209,15 @@ __marimo__/
 # Models (do not upload binaries >100MB)
 models/*.pkl
 models/*.joblib
+
+# Entorno virtual
+venv/
+
+# MLflow local database
+mlflow.db
+
+# MLflow artifacts (si usas file store)
+mlruns/
+
+# Python cache
+__pycache__/
